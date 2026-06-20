@@ -67,6 +67,22 @@ app.get('/search', async (req, res, next) => {
   }
 });
 
+app.post('/plugin/playback', async (req, res, next) => {
+  try {
+    const event = req.body || {};
+    const track = event.track || {};
+    console.log(`plugin playback event: state=${event.state || ''} user=${event.username || ''} track=${track.artist || ''} - ${track.title || ''}`);
+
+    if (event.autoCast && event.castDevice) {
+      await handlePluginCastEvent(event);
+    }
+
+    res.json({ ok: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.post('/cast', async (req, res, next) => {
   try {
     const { device, songId } = req.body || {};
@@ -301,6 +317,33 @@ async function control(player, action) {
       else resolve();
     });
   });
+}
+
+async function handlePluginCastEvent(event) {
+  const target = findDevice(event.castDevice);
+  if (!target) throw new Error(`No Cast device matched "${event.castDevice}".`);
+
+  const player = await getPlayer(target);
+  const state = String(event.state || '').toLowerCase();
+
+  if (state === 'paused') {
+    await control(player, 'pause');
+    return;
+  }
+
+  if (state === 'stopped' || state === 'expired') {
+    await control(player, 'stop');
+    return;
+  }
+
+  if (state !== 'playing' && state !== 'now_playing') return;
+
+  const songId = event.track?.id || event.track?.ID || event.track?.Id;
+  if (!songId) throw new Error('Plugin playback event did not include a track id.');
+
+  const song = await getSong(songId);
+  const media = mediaInfo(song, publicStaticUrl(`/media/${encodeURIComponent(songId)}`));
+  await load(player, media);
 }
 
 function findDevice(value) {

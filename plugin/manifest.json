@@ -1,0 +1,50 @@
+{
+  "$schema": "https://raw.githubusercontent.com/navidrome/navidrome/refs/heads/master/plugins/manifest-schema.json",
+  "name": "Navidrome Cast Bridge",
+  "author": "Stephen Hoos",
+  "version": "0.1.0",
+  "description": "Forwards Navidrome playback events to the Navidrome Cast Bridge companion service.",
+  "website": "https://github.com/stephenhoos/navidrome-cast-bridge",
+  "config": {
+    "schema": {
+      "type": "object",
+      "properties": {
+        "bridge_url": {
+          "type": "string",
+          "title": "Cast Bridge URL",
+          "description": "Base URL for the companion Cast bridge service. Example: http://host.docker.internal:4545 or http://192.168.1.6:4545",
+          "default": "http://host.docker.internal:4545"
+        },
+        "cast_device": {
+          "type": "string",
+          "title": "Cast Device",
+          "description": "Optional Cast receiver name or group to control, for example All My Speakers."
+        },
+        "auto_cast": {
+          "type": "boolean",
+          "title": "Auto-cast playback reports",
+          "description": "When enabled, Navidrome playback reports will be mirrored to the configured Cast device.",
+          "default": false
+        }
+      },
+      "required": ["bridge_url"]
+    },
+    "uiSchema": {
+      "type": "VerticalLayout",
+      "elements": [
+        { "type": "Control", "scope": "#/properties/bridge_url" },
+        { "type": "Control", "scope": "#/properties/cast_device" },
+        { "type": "Control", "scope": "#/properties/auto_cast" }
+      ]
+    }
+  },
+  "permissions": {
+    "http": {
+      "reason": "POST playback events to the local Navidrome Cast Bridge companion service",
+      "requiredHosts": ["*"]
+    },
+    "users": {
+      "reason": "Receive playback/scrobble callbacks for users assigned to this plugin"
+    }
+  }
+}

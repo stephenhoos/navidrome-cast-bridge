@@ -1,13 +1,16 @@
 # Navidrome Cast Bridge
 
-This is a companion service for casting Navidrome tracks to Google Cast / Nest speakers.
+This project includes a real Navidrome `.ndp` plugin and a companion bridge service for casting Navidrome tracks to Google Cast / Nest speakers.
 
-It is intentionally not a pure Navidrome `.ndp` plugin. Navidrome plugins run inside a WebAssembly sandbox, while Google Cast needs LAN device discovery and CastV2 socket control. This bridge runs next to Navidrome, uses the Subsonic API to find tracks and stream media, then tells a Cast receiver to play the proxied stream URL.
+The `.ndp` plugin runs inside Navidrome and forwards playback reports to the bridge. The bridge runs next to Navidrome, discovers Cast devices on the LAN, uses the Subsonic API to stream media, then tells a Cast receiver to play the proxied stream URL.
+
+Google Cast itself cannot be implemented entirely inside a Navidrome plugin because Navidrome plugins run in a WebAssembly sandbox and do not get raw LAN discovery or CastV2 socket control.
 
 ## Status
 
 Early release. The bridge can:
 
+- install as a real Navidrome `.ndp` plugin
 - discover Google Cast receivers on the LAN
 - search Navidrome through the Subsonic API
 - proxy Navidrome audio streams to Cast receivers
@@ -15,6 +18,37 @@ Early release. The bridge can:
 - send basic `play`, `pause`, and `stop` commands
 
 It does not currently add controls inside the Navidrome web UI.
+
+## Plugin
+
+Build the Navidrome plugin package:
+
+```sh
+npm run plugin:package
+```
+
+That creates:
+
+```text
+dist/navidrome-cast-bridge.ndp
+```
+
+Install it by copying the `.ndp` file into your Navidrome plugin folder, then restart Navidrome. For Docker installs where `/data/plugins` is mounted from the host:
+
+```sh
+cp dist/navidrome-cast-bridge.ndp /path/to/navidrome/data/plugins/
+docker compose restart navidrome
+```
+
+In Navidrome, configure the plugin:
+
+```text
+bridge_url = http://host.docker.internal:4545
+cast_device = All My Speakers
+auto_cast = false
+```
+
+Set `auto_cast` to `true` only if you want Navidrome playback reports mirrored automatically to the configured Cast device.
 
 ## Setup
 
