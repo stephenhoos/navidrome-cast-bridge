@@ -19,6 +19,27 @@ Early release. The bridge can:
 
 It does not currently add controls inside the Navidrome web UI.
 
+## Bridge UI
+
+Open the bridge UI:
+
+```text
+http://192.168.1.6:4545/
+```
+
+The bridge UI provides:
+
+- Cast on/off toggle
+- Cast device picker
+- latest playback event received from the Navidrome plugin
+- latest track cast by the bridge
+- Navidrome search and manual cast controls
+- play, pause, and stop controls
+
+The Navidrome plugin can forward playback events continuously while this UI controls whether those events are mirrored to the selected Cast device.
+
+Navidrome's plugin API does not currently expose a web-player UI injection point, so the plugin cannot add a native Cast icon next to Now Playing without modifying Navidrome's frontend itself.
+
 ## Plugin
 
 Build the Navidrome plugin package:

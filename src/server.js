@@ -22,9 +22,16 @@ const app = express();
 const bonjour = new Bonjour();
 const devices = new Map();
 const sessions = new Map();
+const bridgeState = {
+  enabled: process.env.CAST_ENABLED === 'true',
+  device: process.env.CAST_DEVICE || '',
+  lastEvent: null,
+  lastCast: null
+};
 
 app.use(express.json());
 app.use(morgan('combined'));
+app.use(express.static(new URL('../public', import.meta.url).pathname));
 
 bonjour.find({ type: 'googlecast' }, service => {
   const host = firstAddress(service);
@@ -49,6 +56,22 @@ app.get('/devices', (_req, res) => {
   res.json([...devices.values()].sort((a, b) => a.name.localeCompare(b.name)));
 });
 
+app.get('/api/state', (_req, res) => {
+  res.json({
+    ...bridgeState,
+    devices: [...devices.values()].sort((a, b) => a.name.localeCompare(b.name))
+  });
+});
+
+app.patch('/api/state', (req, res) => {
+  const { enabled, device } = req.body || {};
+
+  if (typeof enabled === 'boolean') bridgeState.enabled = enabled;
+  if (typeof device === 'string') bridgeState.device = device;
+
+  res.json(bridgeState);
+});
+
 app.get('/search', async (req, res, next) => {
   try {
     const query = String(req.query.q || '').trim();
@@ -71,9 +94,20 @@ app.post('/plugin/playback', async (req, res, next) => {
   try {
     const event = req.body || {};
     const track = event.track || {};
+    bridgeState.lastEvent = {
+      state: event.state || '',
+      username: event.username || '',
+      track: {
+        id: track.id || track.ID || track.Id || '',
+        title: track.title || track.Title || '',
+        artist: track.artist || track.Artist || '',
+        album: track.album || track.Album || ''
+      },
+      receivedAt: new Date().toISOString()
+    };
     console.log(`plugin playback event: state=${event.state || ''} user=${event.username || ''} track=${track.artist || ''} - ${track.title || ''}`);
 
-    if (event.autoCast && event.castDevice) {
+    if (event.autoCast && bridgeState.enabled) {
       await handlePluginCastEvent(event);
     }
 
@@ -98,6 +132,14 @@ app.post('/cast', async (req, res, next) => {
     const media = mediaInfo(song, publicUrl(req, `/media/${encodeURIComponent(songId)}`));
 
     await load(player, media);
+    bridgeState.enabled = true;
+    bridgeState.device = target.fn || target.name;
+    bridgeState.lastCast = {
+      device: target.fn || target.name,
+      song: displaySong(song),
+      songId,
+      castAt: new Date().toISOString()
+    };
     res.json({ ok: true, device: target.name, song: displaySong(song) });
   } catch (error) {
     next(error);
@@ -320,7 +362,10 @@ async function control(player, action) {
 }
 
 async function handlePluginCastEvent(event) {
-  const target = findDevice(event.castDevice);
+  const targetName = event.castDevice || bridgeState.device;
+  if (!targetName) return;
+
+  const target = findDevice(targetName);
   if (!target) throw new Error(`No Cast device matched "${event.castDevice}".`);
 
   const player = await getPlayer(target);
@@ -344,6 +389,12 @@ async function handlePluginCastEvent(event) {
   const song = await getSong(songId);
   const media = mediaInfo(song, publicStaticUrl(`/media/${encodeURIComponent(songId)}`));
   await load(player, media);
+  bridgeState.lastCast = {
+    device: target.fn || target.name,
+    song: displaySong(song),
+    songId,
+    castAt: new Date().toISOString()
+  };
 }
 
 function findDevice(value) {
@@ -351,7 +402,9 @@ function findDevice(value) {
   return [...devices.values()].find(device => {
     return device.id.toLowerCase() === needle ||
       device.name.toLowerCase() === needle ||
+      String(device.fn || '').toLowerCase() === needle ||
       device.host === value ||
+      String(device.fn || '').toLowerCase().includes(needle) ||
       device.name.toLowerCase().includes(needle);
   });
 }

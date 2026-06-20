@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Navidrome Cast Bridge</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <h1>Navidrome Cast</h1>
+          <p id="statusText">Loading bridge status</p>
+        </div>
+        <button id="toggleCast" class="cast-toggle" type="button" aria-pressed="false" title="Toggle casting">
+          <span class="cast-icon" aria-hidden="true"></span>
+          <span id="toggleText">Off</span>
+        </button>
+      </header>
+
+      <section class="panel controls">
+        <label for="deviceSelect">Cast device</label>
+        <div class="row">
+          <select id="deviceSelect"></select>
+          <button id="refreshDevices" type="button">Refresh</button>
+        </div>
+      </section>
+
+      <section class="panel now">
+        <div>
+          <span class="label">Last Navidrome event</span>
+          <strong id="lastEvent">No playback event yet</strong>
+        </div>
+        <div>
+          <span class="label">Last cast</span>
+          <strong id="lastCast">Nothing cast yet</strong>
+        </div>
+      </section>
+
+      <section class="panel search">
+        <form id="searchForm">
+          <label for="query">Search Navidrome</label>
+          <div class="row">
+            <input id="query" name="q" type="search" placeholder="Track, artist, or album">
+            <button type="submit">Search</button>
+          </div>
+        </form>
+        <div id="results" class="results"></div>
+      </section>
+
+      <section class="panel transport">
+        <button data-action="play" type="button">Play</button>
+        <button data-action="pause" type="button">Pause</button>
+        <button data-action="stop" type="button">Stop</button>
+      </section>
+    </main>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>
